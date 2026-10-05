@@ -2,7 +2,6 @@
 name: map
 description: Map and show the architecture of a repository, covering code structure (packages, modules, imports, external services) AND cloud infrastructure (Terraform, CloudFormation/SAM, Serverless, CDK, Pulumi, Bicep, Kubernetes, Helm, Docker Compose, Cloudflare, Vercel, Netlify, Fly, Railway, Render, Heroku, Firebase, Supabase, CI/CD), as an interactive diagram opened right away. Use for "/ruah:map", "ruah map", "ruah arch", "show me the architecture", "architecture diagram", "map this repo", "how is this deployed", "what infra does this use", "onboard me to this codebase".
 argument-hint: "arch | code | infra | deep | live <aws|gcp|azure|k8s> | refresh | md | quick | open   [path]"
-allowed-tools: Bash(python3 *), Read, Grep, Glob, Write(**/.ruah/enrich.json), Agent
 ---
 
 # ruah map: show me the architecture
@@ -46,7 +45,7 @@ Read the printed summary; don't cat model.json on big repos (query it with `pyth
 `aws sts get-caller-identity` / `gcloud config get-value project` / `az account show` /
 `kubectl config current-context`) and wait for a yes. Then add `--live <providers>` to the
 scan (plus `--aws-region R` if they named one). List/describe calls only; never mutate cloud
-state, never print credentials. These CLI calls are not in `allowed-tools`, so the user approves
+state, never print credentials. Claude Code asks the user to approve
 each one.
 
 ## Step 2: enrich (skip for `quick` and `open`)

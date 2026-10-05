@@ -68,7 +68,7 @@ ruah is designed to keep your code on your machine.
   `az account show` or `kubectl config current-context`) so you can see which account will be read, and
   waits for your yes. Then it runs read-only list/describe calls with that same CLI. These calls use the
   credentials your CLI is already signed in with, on your machine; ruah never reads, prints or stores
-  credential files or tokens. They are not pre-approved by the skill, so Claude Code asks you before each one.
+  credential files or tokens. The skill pre-approves no tools, so Claude Code asks you before each command it runs.
 - **Sends nothing anywhere by itself.** No telemetry, no external API calls. Claude reads the scan
   summary and the files it needs in your session, like any other task. If you ask for the map as a
   claude.ai Artifact, Claude publishes it privately to your account.
