@@ -1,0 +1,8 @@
+tests/out/
+__pycache__/
+.ruah/
+.DS_Store
+ruah.plugin
+media/build/
+media/*.mp4
+media/*.mov

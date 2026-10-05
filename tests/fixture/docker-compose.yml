@@ -1,0 +1,15 @@
+services:
+  api:
+    build: ./apps/api
+    depends_on: [db, redis]
+    environment:
+      DATABASE_URL: postgres://db:5432/acme
+  web:
+    build:
+      context: ./apps/web
+    environment:
+      - API_URL=http://api:8000
+  db:
+    image: postgres:16
+  redis:
+    image: redis:7-alpine

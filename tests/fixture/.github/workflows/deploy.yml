@@ -1,0 +1,22 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+jobs:
+  infra:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform apply -auto-approve
+  edge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cloudflare/wrangler-action@v3
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/build-push-action@v6
+      - run: kubectl apply -f infra/k8s

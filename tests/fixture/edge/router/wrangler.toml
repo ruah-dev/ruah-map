@@ -1,0 +1,11 @@
+name = "acme-router"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+[[kv_namespaces]]
+binding = "CACHE"
+id = "abc"
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "acme-assets"
+[triggers]
+crons = ["*/5 * * * *"]
