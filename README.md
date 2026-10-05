@@ -68,7 +68,7 @@ ruah is designed to keep your code on your machine.
   `az account show` or `kubectl config current-context`) so you can see which account will be read, and
   waits for your yes. Then it runs read-only list/describe calls with that same CLI. These calls use the
   credentials your CLI is already signed in with, on your machine; ruah never reads, prints or stores
-  credential files or tokens. The skill pre-approves no tools, so Claude Code asks you before each command it runs.
+  credential files or tokens. They are not pre-approved by the skill, so Claude Code asks you before each one.
 - **Sends nothing anywhere by itself.** No telemetry, no external API calls. Claude reads the scan
   summary and the files it needs in your session, like any other task. If you ask for the map as a
   claude.ai Artifact, Claude publishes it privately to your account.
@@ -144,6 +144,60 @@ Add `<repo>/.ruah/redact.json` to replace names before the map is drawn, for dem
 - Import graphs cover JS/TS, Python and Go; other languages get structure and SDK detection only.
 - CDK and Pulumi detection is heuristic, and Helm templates are not rendered.
 
+## For directory reviewers
+
+Answers to each check the Claude plugin directory runs, with the code each one points at.
+
+**`MOD_RUNS_PROCESS` / `MOD_PROCESS_COMMAND_COMPUTED`** (`hooks/register.tsx`, the two `$.process.run` calls in
+`build()`). The mod runs exactly two programs, both `python3` with a script bundled in this plugin:
+
+| Command | When | Why |
+|---|---|---|
+| `python3 <plugin>/scripts/scan.py <repo>` | `/ruah`, the Rescan button, or the `show` tool with `rescan: true` | Reads the repository's files and writes `<repo>/.ruah/model.json` |
+| `python3 <plugin>/scripts/render.py <repo>/.ruah --pane --view <overview\|code\|infra\|all>` | after a scan, or when you change view | Turns the model into `<repo>/.ruah/pane.json`, the drawing the mod shows |
+
+The program and script names are fixed text at the call. Only the paths vary: `<plugin>` is the plugin's
+install folder (`$.plugin.root`) and `<repo>` is the folder you map (the session's working directory, or a
+path you typed after `/ruah`). `<view>` is one of the four fixed names. The mod never runs any other program
+and never passes `--live`, so it never calls a cloud CLI.
+
+**`MOD_LOCAL_DATA_LEAVES` / `MOD_SESSION_DATA_LEAVES`.** Nothing leaves the machine. `scan.py` and `render.py`
+use the Python standard library only and make no network calls (no `urllib`, `socket` or `http` imports;
+check with `grep -rn "urllib\|socket\|http.client" scripts`). The only file the mod reads with `$.fs.read` is
+`<repo>/.ruah/pane.json`, which its own scripts wrote; it is drawn on screen and never passed to a process,
+a prompt or the network. The mod's `tool.call` hook reads only the inputs of its own tool (`path`, `view`,
+`rescan`); it reads no conversation text.
+
+**`MOD_DATA_LEAVES_BY_PROMPT`** (`hooks/register.tsx`, `analyzePrompt()`). The submitted prompt is fixed
+text plus two values: the analysis you picked (`deep`, `live <provider>` or `md`) and the repository path.
+It never contains file contents or anything read from `pane.json`. The full text is shown above under
+"Prompts it submits".
+
+**`MOD_ANSWERS_FOR_TOOL`** (`hooks/register.tsx`, `on('tool.call', { tool: 'mcp__ruah__show' })`). The hook
+answers only `mcp__ruah__show`, the tool this same mod registers in `session.start`. That tool has no other
+implementation, so the hook is its implementation; it does not stand in for, wrap or change any built-in or
+third-party tool, and every other tool call never reaches it.
+
+**`MCP_FORWARDS_CREDENTIAL_ENV`** (`scripts/ruah_lib/code.py`, `_env()`). The scanner does not read your
+environment: it never calls `printenv`, `env`, `export -p` or `set`, and never reads `os.environ`. `_env()`
+reads only the variable *names* written in example files such as `.env.example` (never `.env` itself) to
+tell which services a project uses, for example `STRIPE_SECRET_KEY` means Stripe. Values are discarded.
+Nothing sends data off the machine, so the two parts are unrelated. Live mode (`/ruah:map live aws`) runs
+your own cloud CLI, read-only and only after you confirm, as described above.
+
+**`UNREAD_ASSET_REFERENCED`.** The only images are `.claude-plugin/icon.png` and the five README screenshots
+in `media/screens/`. Nothing in the plugin runs them; the README only displays them.
+
+**`COMMAND_NAMES_MOD_FILE`.** No script, skill or agent reads or writes the mod's files in `hooks/`.
+
+## Development
+
+```bash
+python3 tests/test_fixture.py                                  # scanner + renderer on tests/fixture
+claude plugin validate . --strict
+CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 claude plugin test .       # mod test in tests/mod
+```
+
 ## License
 
-MIT © ruah-dev. Part of the [ruah](https://ruah.sh) toolkit for agentic development.
+MIT © ruah-dev. Part of the [ruah](https://ruah.sh) toolkit for agentic development. Docs: [ruah.sh/docs/map](https://www.ruah.sh/docs/map) · [Privacy](https://www.ruah.sh/docs/map/privacy) · [Terms](https://www.ruah.sh/docs/map/terms) · [Support](https://github.com/ruah-dev/ruah-map/issues)

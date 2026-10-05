@@ -6,3 +6,4 @@ ruah.plugin
 media/build/
 media/*.mp4
 media/*.mov
+build.sh

@@ -1,1 +1,1 @@
-{"name":"acme","private":true,"workspaces":["apps/*","packages/*"]}
+{"name":"acme","private":true,"workspaces":["apps/api","apps/web","packages/ui"]}

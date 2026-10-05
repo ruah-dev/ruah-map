@@ -79,17 +79,14 @@ async function loadData($: any, dir: string, st: number): Promise<PaneData | nul
   return cache.data
 }
 
-async function python($: any, args: string[], cwd: string) {
-  return $.process.run(['python3', ...args], { cwd, timeoutMs: 300_000 })
-}
-
 /** scan (optional) + render pane.json; returns the scanner's one-line summary */
 async function build($: any, dir: string, v: RuahView, rescan: boolean): Promise<string> {
   const s = `${$.plugin.root}/scripts`
   let summary = ''
   if (rescan) {
     await update($, busy, () => 'Scanning…')
-    const scan = await python($, [`${s}/scan.py`, dir], dir)
+    // python3 <plugin>/scripts/scan.py <repo>: reads the repo, writes <repo>/.ruah/model.json
+    const scan = await $.process.run(['python3', `${s}/scan.py`, dir], { cwd: dir, timeoutMs: 300_000 })
     if (scan.exitCode !== 0) {
       await update($, busy, () => '')
       throw new Error(scan.stderr.trim().split('\n').slice(-1)[0] || 'scan failed')
@@ -97,7 +94,8 @@ async function build($: any, dir: string, v: RuahView, rescan: boolean): Promise
     summary = (scan.stdout.split('\n')[1] ?? '').replace(/^repo:\s*/, '')
   }
   await update($, busy, () => 'Drawing…')
-  const r = await python($, [`${s}/render.py`, `${dir}/.ruah`, '--pane', '--view', v], dir)
+  // python3 <plugin>/scripts/render.py <repo>/.ruah --pane --view <view>: writes <repo>/.ruah/pane.json
+  const r = await $.process.run(['python3', `${s}/render.py`, `${dir}/.ruah`, '--pane', '--view', v], { cwd: dir, timeoutMs: 300_000 })
   await update($, busy, () => '')
   if (r.exitCode !== 0) throw new Error(r.stderr.trim().split('\n').slice(-1)[0] || 'render failed')
   await update($, stamp, n => (n ?? 0) + 1)

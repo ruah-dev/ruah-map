@@ -572,7 +572,7 @@ class CodeScanner:
         for f in self.files:
             if not ENV_EXAMPLE_RE.search(f):
                 continue
-            keys = re.findall(r"^\s*(?:export\s+)?([A-Z][A-Z0-9_]+)\s*=", m.read(f), re.M)
+            keys = re.findall(r"^\s*(?:[a-z]+\s+)?([A-Z][A-Z0-9_]+)\s*=", m.read(f), re.M)
             if not keys:
                 continue
             m.env_keys[f] = keys
