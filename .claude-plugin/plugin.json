@@ -1,7 +1,7 @@
 {
   "name": "ruah",
   "description": "See the architecture of any repo, code and cloud, right inside Claude Code. /ruah:map scans packages, imports, Terraform, Kubernetes, Compose, Cloudflare, Vercel and CI, then opens a live map above the prompt.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "ruah-dev",
     "url": "https://github.com/ruah-dev"
@@ -18,7 +18,6 @@
     "onboarding",
     "mod"
   ],
-  "types": "./types/index.d.ts",
   "displayName": "ruah",
   "homepage": "https://ruah.sh",
   "repository": "https://github.com/ruah-dev/ruah-map"

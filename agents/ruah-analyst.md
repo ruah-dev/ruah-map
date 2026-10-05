@@ -33,8 +33,7 @@ and reply with a 5–10 line report. You never modify the repository itself.
    4. 2–5 flows for the main journeys,
    5. evidence-backed insights with honest severity.
 4. Validate: `python3 <scripts>/render.py <repo>/.ruah --validate` and fix every reported id. Do not render or open anything; the caller does that.
-   (`<scripts>` is the directory containing scan.py; find it with
-   `ls -d ~/.claude/plugins/cache/*/ruah/*/scripts | tail -1` if not given.)
+   (`<scripts>` is the scripts folder the caller passes you, `${CLAUDE_PLUGIN_ROOT}/scripts`.)
 
 ## Reply
 Short report: what the system is, how many links/flows/insights you added, the top insights,

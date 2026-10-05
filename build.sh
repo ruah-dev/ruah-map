@@ -10,10 +10,6 @@ CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 claude plugin test . | tail -3
 rm -f ruah.plugin
 tmp=$(mktemp -d)
 cp -R .claude-plugin agents skills scripts README.md "$tmp/"
-python3 - "$tmp/.claude-plugin/plugin.json" <<'PY'
-import json, sys
-p = sys.argv[1]; j = json.load(open(p)); j.pop("types", None); json.dump(j, open(p, "w"), indent=2)
-PY
 (cd "$tmp" && zip -qr - . -x '*/__pycache__/*' '*.DS_Store') > ruah.plugin
 rm -rf "$tmp"
 echo "built $(pwd)/ruah.plugin ($(du -h ruah.plugin | cut -f1))"

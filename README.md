@@ -63,13 +63,61 @@ ruah is designed to keep your code on your machine.
   `*.tfstate` or private keys; from `.env.example`-style files it reads key names only.
 - **Runs** `python3` scripts bundled in this plugin (`scripts/scan.py`, `scripts/render.py`) on your
   machine. They write their output to `<repo>/.ruah/`, which ignores itself in git.
-- **Live mode only, and only when you ask for it:** runs the `aws`, `gcloud`, `az` or `kubectl` CLI you
-  already have, with read-only list/describe calls, after asking you to confirm the account.
+- **Live mode only, and only when you ask for it** (`/ruah:map live aws|gcp|azure|k8s`): first runs one
+  identity call with the CLI you already have (`aws sts get-caller-identity`, `gcloud config get-value project`,
+  `az account show` or `kubectl config current-context`) so you can see which account will be read, and
+  waits for your yes. Then it runs read-only list/describe calls with that same CLI. These calls use the
+  credentials your CLI is already signed in with, on your machine; ruah never reads, prints or stores
+  credential files or tokens. They are not pre-approved by the skill, so Claude Code asks you before each one.
 - **Sends nothing anywhere by itself.** No telemetry, no external API calls. Claude reads the scan
   summary and the files it needs in your session, like any other task. If you ask for the map as a
   claude.ai Artifact, Claude publishes it privately to your account.
 - **Optional HTML map** (`.ruah/architecture.html`) loads the cytoscape and ELK libraries from
   cdnjs.cloudflare.com and cdn.jsdelivr.net when you open it in a browser.
+
+## The `/ruah` mod: what it runs, reads and submits
+
+The in-app map is a Claude Code mod (`hooks/register.tsx`). It works on your machine only and
+**sends nothing over the network**: no telemetry, no requests of its own.
+
+**Hooks it adds**
+- `session.start`: registers the `/ruah` command and the `show` tool (below), and restores where you
+  last put the map (above the prompt or in the side panel) from the plugin's own store.
+- `command.run` for `/ruah` only: scans and draws the map, or moves or closes it.
+- `tool.call` for its own `mcp__ruah__show` tool only.
+- `ui.render` for the `AbovePrompt` band (only while the map is open there; otherwise it passes the
+  band through untouched) and for its own side panel.
+
+It does not hook, wrap, block or stand in for any other tool, command or prompt. The `show` tool is
+new and named `mcp__ruah__show`; it does not replace a built-in tool.
+
+**Programs it runs:** only `python3`, with the two scripts bundled in this plugin, in the repository
+you map. `/ruah` and the **Rescan** button run both; the `show` tool runs `render.py`, plus `scan.py` when asked to rescan:
+
+```
+python3 <plugin>/scripts/scan.py <repo>
+python3 <plugin>/scripts/render.py <repo>/.ruah --pane --view <overview|code|infra|all>
+```
+
+`scan.py` reads the repository (same rules as above: no `.env`, credentials, `*.tfstate` or keys) and
+writes `<repo>/.ruah/model.json`. `render.py` turns that into `<repo>/.ruah/pane.json`, the drawing.
+
+**Files it reads and writes:** it reads `<repo>/.ruah/pane.json`. The scripts write only inside
+`<repo>/.ruah/`. It also reads the app's theme setting (light or dark) to color the map, and keeps one
+value in its store: `place` (`band` or `pane`).
+
+**Prompts it submits:** only when you ask for an analysis, with `/ruah deep`, `/ruah live <provider>` or
+`/ruah md`, or the **Analyze** button on the map (same as `/ruah deep`), it submits this prompt to your session:
+
+```
+Use the ruah:map skill with arguments: <deep|live aws|md> <repo path>
+When enrich.json is written, call the mcp__ruah__show tool with this path so the map refreshes.
+```
+
+Nothing else is added to your prompts, and no prompt is submitted on its own.
+
+**The `show` tool** (`mcp__ruah__show`, inputs `path`, `view`, `rescan`) lets Claude refresh the map after
+it writes `.ruah/enrich.json`. It redraws the map in the app and returns one line of text to Claude.
 
 ## What the scanner understands
 

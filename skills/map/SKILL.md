@@ -2,7 +2,7 @@
 name: map
 description: Map and show the architecture of a repository, covering code structure (packages, modules, imports, external services) AND cloud infrastructure (Terraform, CloudFormation/SAM, Serverless, CDK, Pulumi, Bicep, Kubernetes, Helm, Docker Compose, Cloudflare, Vercel, Netlify, Fly, Railway, Render, Heroku, Firebase, Supabase, CI/CD), as an interactive diagram opened right away. Use for "/ruah:map", "ruah map", "ruah arch", "show me the architecture", "architecture diagram", "map this repo", "how is this deployed", "what infra does this use", "onboard me to this codebase".
 argument-hint: "arch | code | infra | deep | live <aws|gcp|azure|k8s> | refresh | md | quick | open   [path]"
-allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
+allowed-tools: Bash(python3 *), Read, Grep, Glob, Write(**/.ruah/enrich.json), Agent
 ---
 
 # ruah map: show me the architecture
@@ -30,19 +30,14 @@ selected in the app). Unknown words: treat as `arch`.
 
 ## Step 0: paths
 
-```bash
-S="${CLAUDE_PLUGIN_ROOT}/scripts"; [ -f "$S/scan.py" ] || S="$(cd "$(dirname "${CLAUDE_SKILL_DIR:-.}")/../scripts" 2>/dev/null && pwd)"
-[ -f "$S/scan.py" ] || S="$(ls -d ~/.claude/plugins/cache/*/ruah/*/scripts 2>/dev/null | tail -1)"
-[ -f "$S/scan.py" ] || S="$(dirname "$(find / -path '*ruah*/scripts/scan.py' -not -path '*/node_modules/*' 2>/dev/null | head -1)")"
-echo "$S"
-```
-
-Requires `python3` (stdlib only). Output always goes to `<repo>/.ruah/` (self-gitignored).
+The scripts live in `${CLAUDE_PLUGIN_ROOT}/scripts` (`scan.py`, `render.py`). Every command below
+calls them by that path with `python3` (3.9+, standard library only). Output always goes to
+`<repo>/.ruah/`, which ignores itself in git.
 
 ## Step 1: scan
 
 ```bash
-python3 "$S/scan.py" "<repo>"            # prints a compact summary; writes <repo>/.ruah/model.json
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/scan.py" "<repo>"            # prints a compact summary; writes <repo>/.ruah/model.json
 ```
 
 Read the printed summary; don't cat model.json on big repos (query it with `python3 -c` if needed).
@@ -51,7 +46,8 @@ Read the printed summary; don't cat model.json on big repos (query it with `pyth
 `aws sts get-caller-identity` / `gcloud config get-value project` / `az account show` /
 `kubectl config current-context`) and wait for a yes. Then add `--live <providers>` to the
 scan (plus `--aws-region R` if they named one). List/describe calls only; never mutate cloud
-state, never print credentials.
+state, never print credentials. These CLI calls are not in `allowed-tools`, so the user approves
+each one.
 
 ## Step 2: enrich (skip for `quick` and `open`)
 
@@ -67,7 +63,7 @@ for enrichment". Then write `<repo>/.ruah/enrich.json` with:
 - 1–3 `flows` and up to 3 `insights` only if they are obvious
 
 **Deep (`deep`, or when the repo has more than ~300 source files or more than ~8 packages):**
-delegate to the `ruah-analyst` agent, passing the repo path, the `.ruah/model.json` path and `$S`.
+delegate to the `ruah-analyst` agent, passing the repo path, the `.ruah/model.json` path and the scripts folder `${CLAUDE_PLUGIN_ROOT}/scripts`.
 It writes enrich.json.
 
 Schema (ids must be real model ids or ids you add in `add_nodes`):
@@ -80,14 +76,14 @@ Schema (ids must be real model ids or ids you add in `add_nodes`):
  "flows": [{"name": "Checkout", "steps": ["pkg:apps/web", {"node": "pkg:apps/api", "note": "POST /orders"}]}],
  "insights": [{"title": "...", "severity": "info|warn|risk", "body": "...", "nodes": ["..."]}]}
 ```
-Validate, then fix every id it reports: `python3 "$S/render.py" "<repo>/.ruah" --validate`
+Validate, then fix every id it reports: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/render.py" "<repo>/.ruah" --validate`
 
 **refresh:** rescan, run `--validate`, delete or re-point entries with dead ids, and cover new gaps.
 
 ## Step 3: render
 
 ```bash
-python3 "$S/render.py" "<repo>/.ruah" --artifact --pane --view <overview|code|infra>   # + --md "<repo>/ARCHITECTURE.md" for md
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/render.py" "<repo>/.ruah" --artifact --pane --view <overview|code|infra>   # + --md "<repo>/ARCHITECTURE.md" for md
 ```
 Use `--view infra` for `infra` and `live`, and `--view code` for `code`. This writes two files:
 `architecture.html` (standalone page for a browser) and `artifact.html` (the same map as a fragment
@@ -106,7 +102,7 @@ for the Claude Artifact viewer, with no absolute paths and no download button).
    for its design skill first, load it and publish unchanged. Mention that the artifact is private.
 2. **A file-sending tool or outputs folder** (Claude app / Cowork): send `<repo>/.ruah/architecture.html`
    with `SendUserFile` (`display: "render"`), or copy it into the outputs folder.
-3. **Terminal CLI:** `python3 "$S/render.py" "<repo>/.ruah" --view <view> --open` opens the
+3. **Terminal CLI:** `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/render.py" "<repo>/.ruah" --view <view> --open` opens the
    default browser.
 4. Otherwise print the path.
 
